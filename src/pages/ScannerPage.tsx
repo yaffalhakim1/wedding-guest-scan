@@ -34,7 +34,7 @@ function triggerVIPCelebration() {
   const count = 200;
   const defaults = {
     origin: { y: 0.7 },
-    colors: ["#d4af37", "#f4e4ba", "#996515", "#fef08a", "#facc15"],
+    colors: ["#6366f1", "#a5b4fc", "#e0e7ff", "#f1f5f9", "#cbd5e1"],
   };
 
   function fire(particleRatio: number, opts: confetti.Options) {
@@ -57,7 +57,7 @@ function triggerRegularCelebration() {
     particleCount: 80,
     spread: 70,
     origin: { y: 0.7 },
-    colors: ["#b76e79", "#d4a5a5", "#4ade80"],
+    colors: ["#6366f1", "#818cf8", "#4ade80"],
   });
 }
 
@@ -201,7 +201,7 @@ export default function ScannerPage() {
           <Badge colorPalette="green" size="lg" py={2} px={4}>
             ✅ {stats.checkedIn} / {stats.total}
           </Badge>
-          <Badge colorPalette="yellow" size="lg" py={2} px={4}>
+          <Badge colorPalette="blue" size="lg" py={2} px={4}>
             ⭐ VIP: {stats.vipCheckedIn} / {stats.vipTotal}
           </Badge>
         </HStack>
@@ -212,7 +212,7 @@ export default function ScannerPage() {
         w="full"
         maxW="500px"
         bg="white"
-        borderColor="gray.200"
+        borderColor="blue.100"
         borderWidth="1px"
         overflow="hidden"
         shadow="md"
@@ -284,7 +284,7 @@ export default function ScannerPage() {
             >
               <Card.Root
                 bg="white"
-                borderColor={scannedGuest.isVIP ? "gold.400" : "green.400"}
+                borderColor={scannedGuest.isVIP ? "blue.400" : "green.400"}
                 borderWidth="2px"
                 shadow="lg"
               >
@@ -312,7 +312,7 @@ export default function ScannerPage() {
                     {/* Status Text */}
                     <Heading
                       size="lg"
-                      color={scannedGuest.isVIP ? "yellow.600" : "green.600"}
+                      color={scannedGuest.isVIP ? "blue.600" : "green.600"}
                     >
                       {statusConfig.title}
                     </Heading>
@@ -323,14 +323,14 @@ export default function ScannerPage() {
                         {scannedGuest.name}
                       </Heading>
                       {scannedGuest.isVIP && (
-                        <Badge colorPalette="yellow" size="lg">
+                        <Badge colorPalette="blue" size="lg">
                           ⭐ VIP
                         </Badge>
                       )}
                     </HStack>
 
                     {/* Description */}
-                    <Text color="gray.600">{statusConfig.description}</Text>
+                    <Text color="blue.600">{statusConfig.description}</Text>
 
                     {/* Scan Again Button */}
                     <Button
@@ -372,7 +372,7 @@ export default function ScannerPage() {
                   <Heading size="lg" color="red.600">
                     {statusConfig.title}
                   </Heading>
-                  <Text color="gray.600">
+                  <Text color="blue.600">
                     {errorMessage || statusConfig.description}
                   </Text>
                   <Button

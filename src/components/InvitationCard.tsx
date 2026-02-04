@@ -4,22 +4,22 @@ import type { WeddingConfig } from "@/hooks/useWeddingConfig";
 
 const INVITATION_THEMES = {
   vip: {
-    textColor: "gold.400",
-    gradientFrom: "gold.400",
-    gradientTo: "gold.200",
-    borderColor: "gold.500",
-    dividerColor: "gold.600",
-    shadow: "0 0 2.5rem rgba(212, 175, 55, 0.3)",
-    decorativeGradient: "linear-gradient(90deg, #d4af37, #f4e4ba, #d4af37)",
+    textColor: "blue.200",
+    gradientFrom: "blue.400",
+    gradientTo: "blue.100",
+    borderColor: "blue.300",
+    dividerColor: "blue.400",
+    shadow: "0 0 2.5rem rgba(129, 140, 248, 0.3)",
+    decorativeGradient: "linear-gradient(90deg, #818cf8, #e0e7ff, #818cf8)",
   },
   regular: {
-    textColor: "rose.400",
-    gradientFrom: "rose.400",
-    gradientTo: "rose.200",
-    borderColor: "rose.500",
-    dividerColor: "rose.600",
-    shadow: "0 0 2.5rem rgba(183, 110, 121, 0.3)",
-    decorativeGradient: "linear-gradient(90deg, #b76e79, #d4a5a5, #b76e79)",
+    textColor: "blue.400",
+    gradientFrom: "blue.500",
+    gradientTo: "blue.200",
+    borderColor: "blue.600",
+    dividerColor: "blue.700",
+    shadow: "0 0 2.5rem rgba(99, 102, 241, 0.3)",
+    decorativeGradient: "linear-gradient(90deg, #6366f1, #c7d2fe, #6366f1)",
   },
 };
 
@@ -95,7 +95,15 @@ export function InvitationCard({
         <VStack gap={2}>
           <HStack color="gray.300">
             <Text>📅</Text>
-            <Text>{config.date}</Text>
+            <Text>
+              {/^\d{4}-\d{2}-\d{2}$/.test(config.date)
+                ? new Date(config.date).toLocaleDateString("en-US", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
+                : config.date}
+            </Text>
           </HStack>
           <HStack color="gray.300">
             <Text>🕐</Text>

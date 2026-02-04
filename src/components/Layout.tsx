@@ -98,7 +98,13 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
   const renderNavItems = (items: NavItem[], title?: string) => (
     <VStack align="stretch" gap={1}>
       {title && (
-        <Text fontSize="xs" color="gray.500" fontWeight="bold" px={6} mb={2}>
+        <Text
+          fontSize="xs"
+          color="whiteAlpha.500"
+          fontWeight="bold"
+          px={6}
+          mb={2}
+        >
           {title}
         </Text>
       )}
@@ -109,9 +115,9 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
             key={item.id}
             variant="ghost"
             justifyContent="start"
-            color={isActive ? "cyan.400" : "gray.400"}
-            bg={isActive ? "whiteAlpha.100" : "transparent"}
-            _hover={{ color: "white", bg: "whiteAlpha.50" }}
+            color={isActive ? "white" : "whiteAlpha.700"}
+            bg={isActive ? "whiteAlpha.200" : "transparent"}
+            _hover={{ color: "white", bg: "whiteAlpha.100" }}
             onClick={() => {
               if (item.to) navigate(item.to);
               if (item.onClick) item.onClick();
@@ -132,10 +138,10 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
   const settingsItems = NAV_ITEMS.filter((item) => item.section === "SETTINGS");
 
   return (
-    <Flex direction="column" h="full" py={6} bg="#1a1c23">
-      <Box px={6} mb={6}>
-        <Heading size="md" color="white">
-          Guest Manager
+    <Flex direction="column" h="full" py={6} bg="blue.950">
+      <Box px={6} mb={10}>
+        <Heading size="lg" color="white" fontWeight="900" letterSpacing="tight">
+          Wedding Admin
         </Heading>
       </Box>
 
@@ -154,11 +160,11 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
 
 export default function Layout() {
   return (
-    <Box minH="100vh" bg="gray.50">
+    <Box minH="100vh" bg="blue.50">
       {/* Desktop Sidebar */}
       <Box
         w={{ base: "0", md: "15.625rem" }}
-        bg="#1a1c23"
+        bg="blue.950"
         h="100vh"
         position="fixed"
         left="0"
@@ -179,7 +185,7 @@ export default function Layout() {
           px={8}
           justify="space-between"
           borderBottom="1px solid"
-          borderColor="gray.200"
+          borderColor="blue.100"
           position="sticky"
           top="0"
           zIndex="10"
@@ -190,10 +196,10 @@ export default function Layout() {
               <DrawerRoot placement="start">
                 <DrawerTrigger asChild>
                   <Button variant="ghost" size="sm" p={0}>
-                    <Icon as={FaBars} fontSize="xl" color="gray.600" />
+                    <Icon as={FaBars} fontSize="xl" color="blue.600" />
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent bg="#1a1c23" color="white" maxW="17.5rem">
+                <DrawerContent bg="blue.950" color="white" maxW="17.5rem">
                   <DrawerHeader
                     borderBottom="1px solid"
                     borderColor="whiteAlpha.100"
@@ -216,21 +222,22 @@ export default function Layout() {
           <HStack gap={3}>
             <Text
               fontSize="sm"
-              color="gray.500"
+              color="blue.500"
               display={{ base: "none", md: "block" }}
             >
               Administrator
             </Text>
             <Box
-              w="2rem"
-              h="2rem"
-              bg="cyan.100"
+              w="2.5rem"
+              h="2.5rem"
+              bg="blue.600"
               borderRadius="full"
               display="flex"
               alignItems="center"
               justifyContent="center"
+              shadow="sm"
             >
-              <Text fontSize="xs" fontWeight="bold" color="cyan.700">
+              <Text fontSize="sm" fontWeight="bold" color="white">
                 A
               </Text>
             </Box>

@@ -22,10 +22,11 @@ export function QuickActionCard({
   return (
     <Card.Root
       bg="white"
+      borderRadius="xl"
       shadow="sm"
-      border="1px solid"
-      borderColor="gray.200"
-      _hover={{ shadow: "md", borderColor: "cyan.400" }}
+      border="none"
+      _hover={{ shadow: "lg", transform: "translateY(-4px)" }}
+      transition="all 0.2s"
       cursor="pointer"
       onClick={() => navigate(to)}
     >

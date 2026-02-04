@@ -136,7 +136,7 @@ export default function GuestsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         bg="white"
-        borderColor="gray.200"
+        borderColor="blue.100"
         shadow="sm"
       >
         <Card.Body p={6}>
@@ -151,9 +151,9 @@ export default function GuestsPage() {
                   placeholder="Enter guest name"
                   size="xl"
                   bg="white"
-                  borderColor="gray.300"
-                  color="gray.800"
-                  _focus={{ borderColor: "green.500" }}
+                  borderColor="blue.200"
+                  color="blue.950"
+                  _focus={{ borderColor: "blue.500" }}
                   px={4}
                 />
               </Box>
@@ -166,7 +166,7 @@ export default function GuestsPage() {
                     <Switch.Root
                       checked={value}
                       onCheckedChange={(e) => onChange(e.checked)}
-                      colorPalette="yellow"
+                      colorPalette="blue"
                       size="lg"
                     >
                       <Switch.HiddenInput />
@@ -191,10 +191,10 @@ export default function GuestsPage() {
               <Box gridColumn={{ base: "span 1", md: "span 2" }}>
                 <Button
                   type="submit"
-                  colorPalette="green"
+                  colorPalette="blue"
                   variant="solid"
                   color="white"
-                  _hover={{ bg: "green.700" }}
+                  _hover={{ bg: "blue.700" }}
                   size="xl"
                   w="full"
                   disabled={!isValid}
@@ -215,20 +215,16 @@ export default function GuestsPage() {
           onChange={(e) => setSearchQuery(e.target.value || null)}
           placeholder="🔍 Search guests..."
           size="xl"
-          bg="white"
-          borderColor="gray.300"
-          color="gray.800"
-          _focus={{ borderColor: "green.500" }}
+          bg="blue.100"
+          border="none"
+          color="blue.900"
+          _placeholder={{ color: "blue.400" }}
+          _focus={{ bg: "blue.200" }}
           py={6}
           px={6}
         />
 
-        <Card.Root
-          bg="white"
-          borderColor="gray.200"
-          borderWidth="1px"
-          shadow="sm"
-        >
+        <Card.Root bg="white" borderRadius="xl" border="none" shadow="lg">
           <Card.Body p={0}>
             {filteredGuests.length === 0 ? (
               <VStack py={16} gap={6}>
@@ -243,9 +239,9 @@ export default function GuestsPage() {
               <Table.ScrollArea>
                 <Table.Root size={{ base: "sm", md: "lg" }} striped>
                   <Table.Header>
-                    <Table.Row bg="gray.50">
+                    <Table.Row bg="blue.50">
                       <Table.ColumnHeader
-                        color="gray.600"
+                        color="blue.700"
                         fontWeight="bold"
                         fontSize="sm"
                         p={4}
@@ -253,21 +249,21 @@ export default function GuestsPage() {
                         Name
                       </Table.ColumnHeader>
                       <Table.ColumnHeader
-                        color="gray.600"
+                        color="blue.600"
                         fontWeight="bold"
                         fontSize="sm"
                       >
                         Status
                       </Table.ColumnHeader>
                       <Table.ColumnHeader
-                        color="gray.600"
+                        color="blue.600"
                         fontWeight="bold"
                         fontSize="sm"
                       >
                         Check-in
                       </Table.ColumnHeader>
                       <Table.ColumnHeader
-                        color="gray.600"
+                        color="blue.600"
                         textAlign="end"
                         fontWeight="bold"
                         fontSize="sm"
@@ -294,7 +290,7 @@ export default function GuestsPage() {
                               </Text>
                               {guest.isVIP && (
                                 <Badge
-                                  colorPalette="yellow"
+                                  colorPalette="blue"
                                   variant="solid"
                                   size="sm"
                                   px={1}
@@ -314,7 +310,7 @@ export default function GuestsPage() {
                               {guest.checkedIn ? "Checked In" : "Pending"}
                             </Badge>
                           </Table.Cell>
-                          <Table.Cell color="gray.600" fontSize="sm">
+                          <Table.Cell color="blue.600" fontSize="sm">
                             {guest.checkedInAt
                               ? new Date(guest.checkedInAt).toLocaleTimeString(
                                   "en-GB",

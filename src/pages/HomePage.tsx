@@ -32,39 +32,39 @@ const MotionBox = motion.create(Box);
 const STAT_CARDS_CONFIG = [
   {
     key: "total",
-    label: "Total Guests (Undangan)",
+    label: "Total Guests",
     getValue: (stats: ReturnType<typeof useGuests>["getStats"]) =>
       stats().total,
-    bg: "cyan.500",
+    bg: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
     icon: FaUsers,
-    subLabel: "Target 300 pax",
+    subLabel: "Invitations Sent",
   },
   {
     key: "checkedIn",
-    label: "Guests Checked In / Hadir",
+    label: "Guest Arrivals",
     getValue: (stats: ReturnType<typeof useGuests>["getStats"]) =>
       stats().checkedIn,
-    bg: "green.500",
+    bg: "linear-gradient(135deg, #3730a3 0%, #1e1b4b 100%)",
     icon: FaUserCheck,
-    subLabel: "Real-time updates",
+    subLabel: "Real-time Presence",
   },
   {
     key: "vipTotal",
-    label: "VIP Guests Invited",
+    label: "VIP List",
     getValue: (stats: ReturnType<typeof useGuests>["getStats"]) =>
       stats().vipTotal,
-    bg: "purple.500",
+    bg: "linear-gradient(135deg, #818cf8 0%, #6366f1 100%)",
     icon: FaStar,
-    subLabel: "Special handling",
+    subLabel: "Special Protocol",
   },
   {
     key: "vipCheckedIn",
     label: "VIP Arrived",
     getValue: (stats: ReturnType<typeof useGuests>["getStats"]) =>
       stats().vipCheckedIn,
-    bg: "orange.400",
+    bg: "linear-gradient(135deg, #4f46e5 0%, #3730a3 100%)",
     icon: FaStar,
-    subLabel: "Check seating plan",
+    subLabel: "Seating Plan Active",
   },
 ] as const;
 
@@ -80,14 +80,14 @@ const QUICK_ACTIONS = [
     label: "Add Guest",
     description: "Register new attendees",
     icon: FaUserPlus,
-    colorScheme: "green",
+    colorScheme: "blue",
     to: "/guests",
   },
   {
     label: "Manage List",
     description: "View and edit all guests",
     icon: FaUsers,
-    colorScheme: "purple",
+    colorScheme: "gray",
     to: "/guests",
   },
 ];
@@ -127,7 +127,8 @@ export default function HomePage() {
               color="white"
               overflow="hidden"
               border="none"
-              shadow="md"
+              shadow="lg"
+              borderRadius="xl"
             >
               <Card.Body p={5}>
                 <HStack justify="space-between" align="start" mb={4}>

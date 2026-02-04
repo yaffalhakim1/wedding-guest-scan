@@ -109,7 +109,7 @@ export default function InvitationPage() {
         <VStack gap={6}>
           <Text fontSize="6xl">😢</Text>
           <Heading color="gray.800">Guest Not Found</Heading>
-          <Button onClick={() => navigate("/guests")}>
+          <Button colorPalette="blue" onClick={() => navigate("/guests")}>
             ← Back to Guest List
           </Button>
         </VStack>
@@ -122,7 +122,7 @@ export default function InvitationPage() {
     return (
       <Container maxW="container.md" py={20}>
         <VStack gap={6}>
-          <Spinner size="xl" color="rose.500" />
+          <Spinner size="xl" color="blue.500" />
           <Text color="gray.500">Loading invitation...</Text>
         </VStack>
       </Container>
@@ -137,7 +137,7 @@ export default function InvitationPage() {
         </Button>
 
         {!sharedData && (
-          <Button variant="solid" onClick={handleShare}>
+          <Button variant="solid" colorPalette="blue" onClick={handleShare}>
             <LuShare2 /> Share Link
           </Button>
         )}

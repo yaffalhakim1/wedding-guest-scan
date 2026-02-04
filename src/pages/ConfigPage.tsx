@@ -69,7 +69,7 @@ export default function ConfigPage() {
               size="md"
               color="gray.800"
               borderBottomWidth="1px"
-              borderColor="gray.100"
+              borderColor="blue.50"
               pb={4}
             >
               Event Details
@@ -90,9 +90,9 @@ export default function ConfigPage() {
                   <Input
                     {...register("bride")}
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
@@ -109,9 +109,9 @@ export default function ConfigPage() {
                   <Input
                     {...register("groom")}
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
@@ -128,10 +128,11 @@ export default function ConfigPage() {
                   </Text>
                   <Input
                     {...register("date")}
+                    type="date"
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
@@ -146,10 +147,11 @@ export default function ConfigPage() {
                   </Text>
                   <Input
                     {...register("time")}
+                    type="time"
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
@@ -167,9 +169,9 @@ export default function ConfigPage() {
                   <Input
                     {...register("venue")}
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
@@ -186,9 +188,9 @@ export default function ConfigPage() {
                   <Input
                     {...register("message")}
                     bg="white"
-                    borderColor="gray.300"
+                    borderColor="blue.200"
                     color="gray.800"
-                    _focus={{ borderColor: "cyan.500" }}
+                    _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
                 </Box>
