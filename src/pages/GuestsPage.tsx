@@ -240,116 +240,125 @@ export default function GuestsPage() {
                 </Text>
               </VStack>
             ) : (
-              <Table.Root size="lg" striped>
-                <Table.Header>
-                  <Table.Row bg="gray.50">
-                    <Table.ColumnHeader
-                      color="gray.600"
-                      fontWeight="bold"
-                      fontSize="sm"
-                      p={4}
-                    >
-                      Name
-                    </Table.ColumnHeader>
-                    <Table.ColumnHeader
-                      color="gray.600"
-                      fontWeight="bold"
-                      fontSize="sm"
-                    >
-                      Status
-                    </Table.ColumnHeader>
-                    <Table.ColumnHeader
-                      color="gray.600"
-                      fontWeight="bold"
-                      fontSize="sm"
-                    >
-                      Check-in
-                    </Table.ColumnHeader>
-                    <Table.ColumnHeader
-                      color="gray.600"
-                      textAlign="end"
-                      fontWeight="bold"
-                      fontSize="sm"
-                      pr={6}
-                    >
-                      Actions
-                    </Table.ColumnHeader>
-                  </Table.Row>
-                </Table.Header>
-                <Table.Body>
-                  <AnimatePresence>
-                    {filteredGuests.map((guest) => (
-                      <Table.Row key={guest.id}>
-                        <Table.Cell p={4}>
-                          <HStack>
-                            <Text
-                              color="gray.800"
-                              fontWeight="semibold"
-                              fontSize="md"
-                            >
-                              {guest.name}
-                            </Text>
-                            {guest.isVIP && (
-                              <Badge
-                                colorPalette="yellow"
-                                variant="solid"
-                                size="md"
-                                px={2}
+              <Table.ScrollArea>
+                <Table.Root size={{ base: "sm", md: "lg" }} striped>
+                  <Table.Header>
+                    <Table.Row bg="gray.50">
+                      <Table.ColumnHeader
+                        color="gray.600"
+                        fontWeight="bold"
+                        fontSize="sm"
+                        p={4}
+                      >
+                        Name
+                      </Table.ColumnHeader>
+                      <Table.ColumnHeader
+                        color="gray.600"
+                        fontWeight="bold"
+                        fontSize="sm"
+                      >
+                        Status
+                      </Table.ColumnHeader>
+                      <Table.ColumnHeader
+                        color="gray.600"
+                        fontWeight="bold"
+                        fontSize="sm"
+                      >
+                        Check-in
+                      </Table.ColumnHeader>
+                      <Table.ColumnHeader
+                        color="gray.600"
+                        textAlign="end"
+                        fontWeight="bold"
+                        fontSize="sm"
+                        pr={{ base: 4, md: 6 }}
+                        w={{ base: "3.75rem", md: "auto" }}
+                      >
+                        Actions
+                      </Table.ColumnHeader>
+                    </Table.Row>
+                  </Table.Header>
+                  <Table.Body>
+                    <AnimatePresence>
+                      {filteredGuests.map((guest) => (
+                        <Table.Row key={guest.id}>
+                          <Table.Cell p={{ base: 3, md: 4 }}>
+                            <HStack flexWrap="wrap">
+                              <Text
+                                color="gray.800"
+                                fontWeight="semibold"
+                                fontSize={{ base: "sm", md: "md" }}
+                                whiteSpace="nowrap"
                               >
-                                ⭐ VIP
-                              </Badge>
-                            )}
-                          </HStack>
-                        </Table.Cell>
-                        <Table.Cell py={4}>
-                          <Badge
-                            colorPalette={guest.checkedIn ? "green" : "gray"}
-                            variant="subtle"
-                            size="md"
-                            px={2}
-                          >
-                            {guest.checkedIn ? "Checked In" : "Pending"}
-                          </Badge>
-                        </Table.Cell>
-                        <Table.Cell color="gray.600" fontSize="sm">
-                          {guest.checkedInAt
-                            ? new Date(guest.checkedInAt).toLocaleTimeString(
-                                "en-GB",
-                                {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: false,
-                                },
-                              )
-                            : "-"}
-                        </Table.Cell>
-                        <Table.Cell textAlign="end" pr={6}>
-                          <HStack gap={3} justify="end">
-                            <Button
-                              size="sm"
-                              colorPalette="blue"
-                              minW="7.5rem"
-                              onClick={() =>
-                                navigate(`/invitation/${guest.id}`)
-                              }
+                                {guest.name}
+                              </Text>
+                              {guest.isVIP && (
+                                <Badge
+                                  colorPalette="yellow"
+                                  variant="solid"
+                                  size="sm"
+                                  px={1}
+                                >
+                                  ⭐ VIP
+                                </Badge>
+                              )}
+                            </HStack>
+                          </Table.Cell>
+                          <Table.Cell py={4} px={{ base: 2, md: 4 }}>
+                            <Badge
+                              colorPalette={guest.checkedIn ? "green" : "gray"}
+                              variant="subtle"
+                              size="md"
+                              px={2}
                             >
-                              📩 Invitation
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              colorPalette="red"
-                              onClick={() => setGuestToDelete(guest)}
-                            >
-                              🗑️
-                            </Button>
-                          </HStack>
-                        </Table.Cell>
-                      </Table.Row>
-                    ))}
-                  </AnimatePresence>
-                </Table.Body>
-              </Table.Root>
+                              {guest.checkedIn ? "Checked In" : "Pending"}
+                            </Badge>
+                          </Table.Cell>
+                          <Table.Cell color="gray.600" fontSize="sm">
+                            {guest.checkedInAt
+                              ? new Date(guest.checkedInAt).toLocaleTimeString(
+                                  "en-GB",
+                                  {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: false,
+                                  },
+                                )
+                              : "-"}
+                          </Table.Cell>
+                          <Table.Cell textAlign="end" pr={{ base: 4, md: 6 }}>
+                            <HStack gap={{ base: 2, md: 3 }} justify="end">
+                              <Button
+                                size="sm"
+                                colorPalette="blue"
+                                minW={{ base: "2rem", md: "7.5rem" }}
+                                onClick={() =>
+                                  navigate(`/invitation/${guest.id}`)
+                                }
+                              >
+                                <Text display={{ base: "none", md: "block" }}>
+                                  📩 Invitation
+                                </Text>
+                                <Text display={{ base: "block", md: "none" }}>
+                                  📩
+                                </Text>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                colorPalette="red"
+                                onClick={() => setGuestToDelete(guest)}
+                              >
+                                🗑️
+                              </Button>
+                            </HStack>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))}
+                    </AnimatePresence>
+                  </Table.Body>
+                </Table.Root>
+              </Table.ScrollArea>
             )}
           </Card.Body>
         </Card.Root>
