@@ -99,7 +99,7 @@ const QUICK_ACTIONS = [
 export default function HomePage() {
   const navigate = useNavigate();
   const { getStats } = useGuests();
-  const weddingConfig = useWeddingConfig();
+  const { weddingConfig } = useWeddingConfig();
 
   return (
     <VStack align="stretch" gap={8}>
@@ -126,9 +126,7 @@ export default function HomePage() {
               bg={config.bg}
               color="white"
               overflow="hidden"
-              border="none"
-              shadow="lg"
-              borderRadius="xl"
+              border={0}
             >
               <Card.Body p={5}>
                 <HStack justify="space-between" align="start" mb={4}>

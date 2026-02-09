@@ -1,4 +1,5 @@
-import type { Guest, QRPayload } from "@/types";
+import type { Guest } from "@/types";
+import { qrPayloadSchema, type QRPayload } from "./validators";
 import QRCode from "qrcode";
 
 // ============================================================================
@@ -26,14 +27,13 @@ export function encodeQRPayload(guest: Guest): string {
 export function decodeQRPayload(encoded: string): QRPayload | null {
   try {
     const decoded = atob(encoded);
-    const payload = JSON.parse(decoded) as QRPayload;
+    const result = qrPayloadSchema.safeParse(JSON.parse(decoded));
 
-    // Validate required fields
-    if (!payload.id || !payload.name || typeof payload.vip !== "boolean") {
+    if (!result.success) {
       return null;
     }
 
-    return payload;
+    return result.data;
   } catch {
     return null;
   }

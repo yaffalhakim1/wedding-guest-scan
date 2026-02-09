@@ -1,6 +1,10 @@
 // ============================================================================
 // Types - Guest & App State
 // ============================================================================
+import type {
+  QRPayload as ValidatorQRPayload,
+  WeddingConfig as ValidatorWeddingConfig,
+} from "@/utils/validators";
 
 /**
  * Guest data model
@@ -9,20 +13,17 @@ export interface Guest {
   id: string;
   name: string;
   isVIP: boolean;
-  createdAt: number;
+  createdAt: string;
   checkedIn: boolean;
-  checkedInAt: number | null;
+  checkedInAt: string | null;
+  group?: string;
+  attendanceCount?: number;
 }
 
 /**
  * QR Code payload embedded in the QR
  */
-export interface QRPayload {
-  id: string;
-  name: string;
-  vip: boolean;
-  ts: number;
-}
+export type QRPayload = ValidatorQRPayload;
 
 /**
  * Scan record for history tracking
@@ -37,14 +38,7 @@ export interface ScanRecord {
 /**
  * Wedding config from JSON
  */
-export interface WeddingConfig {
-  bride: string;
-  groom: string;
-  date: string;
-  time: string;
-  venue: string;
-  message: string;
-}
+export type WeddingConfig = ValidatorWeddingConfig;
 
 /**
  * App state stored in localStorage
@@ -61,6 +55,11 @@ export interface AppState {
 export type ScannerStatus =
   | "idle"
   | "scanning"
+  | "searching"
+  | "adding"
+  | "verifying"
+  | "checking-in"
+  | "welcoming"
   | "success"
   | "error"
   | "already-checked-in";

@@ -1,4 +1,4 @@
-import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Link } from "react-router-dom";
 import {
   Box,
   Heading,
@@ -17,6 +17,7 @@ import {
   FaSignOutAlt,
   FaBars,
 } from "react-icons/fa";
+import { useAuth } from "../hooks/useAuth";
 import { type IconType } from "react-icons";
 import {
   DrawerRoot,
@@ -59,9 +60,16 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "scan",
-    label: "Scanner",
+    label: "Scanner (Dashboard)",
     icon: FaQrcode,
     to: "/scan",
+    section: "MAIN MENU",
+  },
+  {
+    id: "scan-fullscreen",
+    label: "Full-Screen Scanner",
+    icon: FaQrcode,
+    to: "/scan-fullscreen",
     section: "MAIN MENU",
   },
 
@@ -71,13 +79,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Configuration",
     icon: FaCog,
     to: "/config",
-    section: "SETTINGS",
-  },
-  {
-    id: "logout",
-    label: "Logout",
-    icon: FaSignOutAlt,
-    onClick: () => console.log("Logout"),
     section: "SETTINGS",
   },
 ];
@@ -91,9 +92,9 @@ interface SidebarContentProps {
 }
 
 const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+  const { logout } = useAuth();
 
   const renderNavItems = (items: NavItem[], title?: string) => (
     <VStack align="stretch" gap={1}>
@@ -110,6 +111,29 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
       )}
       {items.map((item) => {
         const isActive = item.to ? currentPath === item.to : false;
+        
+        if (item.to) {
+          return (
+            <Button
+              key={item.id}
+              asChild
+              variant="ghost"
+              justifyContent="start"
+              color={isActive ? "white" : "whiteAlpha.700"}
+              bg={isActive ? "whiteAlpha.200" : "transparent"}
+              _hover={{ color: "white", bg: "whiteAlpha.100" }}
+              rounded="none"
+              px={6}
+              h="12"
+              onClick={onItemClick}
+            >
+              <Link to={item.to}>
+                <Icon as={item.icon} mr={3} /> {item.label}
+              </Link>
+            </Button>
+          );
+        }
+        
         return (
           <Button
             key={item.id}
@@ -119,7 +143,6 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
             bg={isActive ? "whiteAlpha.200" : "transparent"}
             _hover={{ color: "white", bg: "whiteAlpha.100" }}
             onClick={() => {
-              if (item.to) navigate(item.to);
               if (item.onClick) item.onClick();
               if (onItemClick) onItemClick();
             }}
@@ -149,7 +172,22 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
       <Box>{renderNavItems(mainItems, "MAIN MENU")}</Box>
 
       {/* Settings - pushed to bottom */}
-      <Box mt="auto">{renderNavItems(settingsItems, "SETTINGS")}</Box>
+      <Box mt="auto">
+        {renderNavItems(settingsItems, "SETTINGS")}
+        <Button
+          variant="ghost"
+          justifyContent="start"
+          color="whiteAlpha.700"
+          _hover={{ color: "white", bg: "whiteAlpha.100" }}
+          onClick={logout}
+          rounded="none"
+          px={6}
+          h="12"
+          w="full"
+        >
+          <Icon as={FaSignOutAlt} mr={3} /> Logout
+        </Button>
+      </Box>
     </Flex>
   );
 };
@@ -159,6 +197,7 @@ const SidebarContent = ({ onItemClick }: SidebarContentProps) => {
 // ============================================================================
 
 export default function Layout() {
+  const { user } = useAuth();
   return (
     <Box minH="100vh" bg="blue.50">
       {/* Desktop Sidebar */}
@@ -225,7 +264,7 @@ export default function Layout() {
               color="blue.500"
               display={{ base: "none", md: "block" }}
             >
-              Administrator
+              {user?.email || "Administrator"}
             </Text>
             <Box
               w="2.5rem"
@@ -238,7 +277,7 @@ export default function Layout() {
               shadow="sm"
             >
               <Text fontSize="sm" fontWeight="bold" color="white">
-                A
+                {user?.email?.[0].toUpperCase() || "A"}
               </Text>
             </Box>
           </HStack>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { isAxiosError } from "axios";
 import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryState } from "nuqs";
 import {
   Box,
@@ -15,9 +16,13 @@ import {
   Badge,
   Switch,
   SimpleGrid,
+  IconButton,
+  QrCode,
+  Center,
 } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { toaster } from "@/components/ui/toaster";
+import { LuTrash2, LuQrCode, LuShare2 } from "react-icons/lu";
+import { toaster } from "@/components/ui/toaster-instance";
 import {
   DialogRoot,
   DialogContent,
@@ -30,6 +35,9 @@ import {
 } from "@/components/ui/dialog";
 import { useGuests } from "@/hooks/useGuests";
 import type { Guest } from "@/types";
+import { encodeQRPayload } from "@/utils/qr";
+import { guestSchema, type GuestFormData } from "@/utils/validators";
+import RHFForm from "@/components/RHFForm";
 
 // ============================================================================
 // Constants
@@ -37,18 +45,13 @@ import type { Guest } from "@/types";
 
 const MotionCard = motion.create(Card.Root);
 
-type GuestFormData = {
-  name: string;
-  isVIP: boolean;
-};
-
 // ============================================================================
 // GuestsPage Component
 // ============================================================================
 
 export default function GuestsPage() {
-  const navigate = useNavigate();
-  const { guests, addGuest, deleteGuest } = useGuests();
+  const [selectedQR, setSelectedQR] = useState<Guest | null>(null);
+  const { guests, deleteGuest, addGuest } = useGuests();
 
   // Search State (synced with URL)
   const [searchQuery, setSearchQuery] = useQueryState("q", {
@@ -59,19 +62,24 @@ export default function GuestsPage() {
   const [guestToDelete, setGuestToDelete] = useState<Guest | null>(null);
 
   // Add Guest Form
+  const methods = useForm<GuestFormData>({
+    resolver: zodResolver(guestSchema),
+    defaultValues: {
+      name: "",
+      isVIP: false,
+      group: undefined,
+      attendanceCount: 1,
+    },
+    mode: "onChange",
+  });
+
   const {
     register,
     handleSubmit,
     control,
     reset,
     formState: { isSubmitting, isValid },
-  } = useForm<GuestFormData>({
-    defaultValues: {
-      name: "",
-      isVIP: false,
-    },
-    mode: "onChange",
-  });
+  } = methods;
 
   // Filtered guests
   const filteredGuests = useMemo(() => {
@@ -82,22 +90,76 @@ export default function GuestsPage() {
   }, [guests, searchQuery]);
 
   // Handle form submit
-  const onSubmit = (data: GuestFormData) => {
+  const onSubmit = async (data: GuestFormData) => {
     if (!data.name.trim()) return;
 
     try {
-      addGuest(data.name.trim(), data.isVIP);
+      const result = await addGuest(
+        data.name.trim(),
+        data.isVIP,
+        data.group,
+        data.attendanceCount,
+      );
+
+      // Generate invitation URL
+      const invitationUrl = `${window.location.origin}/invitation/${result?.id || ""}`;
+
       toaster.create({
         title: "Guest added",
-        description: `${data.name} has been added to the list.`,
+        description: (
+          <VStack align="start" gap={2} w="full">
+            <Text>{data.name} has been added to the list.</Text>
+            <Box
+              bg="blue.50"
+              p={3}
+              borderRadius="md"
+              w="full"
+              borderWidth="1px"
+              borderColor="blue.200"
+            >
+              <VStack align="stretch" gap={2}>
+                <Text fontSize="xs" fontWeight="bold" color="blue.700">
+                  Invitation Link:
+                </Text>
+                <HStack>
+                  <Input
+                    value={invitationUrl}
+                    readOnly
+                    size="sm"
+                    fontSize="xs"
+                    bg="white"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(invitationUrl);
+                      toaster.create({
+                        title: "Link copied!",
+                        type: "success",
+                        duration: 2000,
+                      });
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </HStack>
+              </VStack>
+            </Box>
+          </VStack>
+        ),
         type: "success",
+        duration: 15000,
       });
       reset();
-    } catch (error) {
-      console.error(error);
+    } catch (err: unknown) {
+      console.error(err);
+      let errorMessage = "Failed to add guest. Please try again.";
+      if (isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || errorMessage;
+      }
       toaster.create({
         title: "Error",
-        description: "Failed to add guest. Please try again.",
+        description: errorMessage,
         type: "error",
       });
     }
@@ -113,20 +175,28 @@ export default function GuestsPage() {
         type: "info",
       });
       setGuestToDelete(null);
-    } catch (e) {
-      console.error("Delete failed", e);
-      toaster.create({ title: "Delete failed", type: "error" });
+    } catch (err: unknown) {
+      console.error("Delete failed", err);
+      let errorMessage = "Delete failed";
+      if (isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || errorMessage;
+      }
+      toaster.create({
+        title: "Delete failed",
+        description: errorMessage,
+        type: "error",
+      });
     }
   };
 
   return (
-    <VStack gap={8} align="stretch" pb={10}>
+    <Box gap={8} pb={10}>
       {/* Header */}
       <Box>
         <Heading size="2xl" color="gray.800" mb={2}>
           Guest Management
         </Heading>
-        <Text color="gray.500">
+        <Text color="gray.500" mb={2}>
           {guests.length} guest{guests.length !== 1 ? "s" : ""} registered
         </Text>
       </Box>
@@ -135,19 +205,17 @@ export default function GuestsPage() {
       <MotionCard
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        bg="white"
-        borderColor="blue.100"
-        shadow="sm"
+        mb={4}
       >
         <Card.Body p={6}>
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <RHFForm methods={methods} onSubmit={handleSubmit(onSubmit)}>
             <SimpleGrid columns={{ base: 1, md: 12 }} gap={6} alignItems="end">
-              <Box gridColumn={{ base: "span 1", md: "span 8" }}>
+              <Box gridColumn={{ base: "span 1", md: "span 4" }}>
                 <Text mb={3} fontWeight="medium" color="gray.600" fontSize="md">
                   Add Guest
                 </Text>
                 <Input
-                  {...register("name", { required: true })}
+                  {...register("name")}
                   placeholder="Enter guest name"
                   size="xl"
                   bg="white"
@@ -158,7 +226,41 @@ export default function GuestsPage() {
                 />
               </Box>
 
-              <Box gridColumn={{ base: "span 1", md: "span 2" }} pb={2}>
+              <Box gridColumn={{ base: "span 1", md: "span 3" }}>
+                <Text mb={3} fontWeight="medium" color="gray.600" fontSize="md">
+                  Group / Category
+                </Text>
+                <Input
+                  {...register("group")}
+                  placeholder="e.g. Keluarga Bride"
+                  size="xl"
+                  bg="white"
+                  borderColor="blue.200"
+                  color="blue.950"
+                  _focus={{ borderColor: "blue.500" }}
+                  px={4}
+                />
+              </Box>
+
+              <Box gridColumn={{ base: "span 1", md: "span 1" }}>
+                <Text mb={3} fontWeight="medium" color="gray.600" fontSize="md">
+                  Pax
+                </Text>
+                <Input
+                  {...register("attendanceCount", { valueAsNumber: true })}
+                  type="number"
+                  min={1}
+                  placeholder="1"
+                  size="xl"
+                  bg="white"
+                  borderColor="blue.200"
+                  color="blue.950"
+                  _focus={{ borderColor: "blue.500" }}
+                  px={4}
+                />
+              </Box>
+
+              <Box gridColumn={{ base: "span 1", md: "span 2" }} pb={{ md: 2 }}>
                 <Controller
                   name="isVIP"
                   control={control}
@@ -178,7 +280,7 @@ export default function GuestsPage() {
                             fontSize="md"
                             fontWeight="medium"
                           >
-                            VIP Status
+                            VIP
                           </Text>
                           <Text fontSize="xl">⭐</Text>
                         </HStack>
@@ -200,11 +302,11 @@ export default function GuestsPage() {
                   disabled={!isValid}
                   loading={isSubmitting}
                 >
-                  Add Guest
+                  Add
                 </Button>
               </Box>
             </SimpleGrid>
-          </form>
+          </RHFForm>
         </Card.Body>
       </MotionCard>
 
@@ -224,7 +326,7 @@ export default function GuestsPage() {
           px={6}
         />
 
-        <Card.Root bg="white" borderRadius="xl" border="none" shadow="lg">
+        <Card.Root bg="white">
           <Card.Body p={0}>
             {filteredGuests.length === 0 ? (
               <VStack py={16} gap={6}>
@@ -253,6 +355,13 @@ export default function GuestsPage() {
                         fontWeight="bold"
                         fontSize="sm"
                       >
+                        Group
+                      </Table.ColumnHeader>
+                      <Table.ColumnHeader
+                        color="blue.600"
+                        fontWeight="bold"
+                        fontSize="sm"
+                      >
                         Status
                       </Table.ColumnHeader>
                       <Table.ColumnHeader
@@ -264,7 +373,6 @@ export default function GuestsPage() {
                       </Table.ColumnHeader>
                       <Table.ColumnHeader
                         color="blue.600"
-                        textAlign="end"
                         fontWeight="bold"
                         fontSize="sm"
                         pr={{ base: 4, md: 6 }}
@@ -279,26 +387,54 @@ export default function GuestsPage() {
                       {filteredGuests.map((guest) => (
                         <Table.Row key={guest.id}>
                           <Table.Cell p={{ base: 3, md: 4 }}>
-                            <HStack flexWrap="wrap">
-                              <Text
-                                color="gray.800"
-                                fontWeight="semibold"
-                                fontSize={{ base: "sm", md: "md" }}
-                                whiteSpace="nowrap"
-                              >
-                                {guest.name}
-                              </Text>
-                              {guest.isVIP && (
-                                <Badge
-                                  colorPalette="blue"
-                                  variant="solid"
-                                  size="sm"
-                                  px={1}
+                            <VStack align="start" gap={0}>
+                              <HStack flexWrap="wrap">
+                                <Text
+                                  color="gray.800"
+                                  fontWeight="semibold"
+                                  fontSize={{ base: "sm", md: "md" }}
+                                  whiteSpace="nowrap"
                                 >
-                                  ⭐ VIP
-                                </Badge>
-                              )}
-                            </HStack>
+                                  {guest.name}
+                                </Text>
+                                {guest.isVIP && (
+                                  <Badge
+                                    colorPalette="blue"
+                                    variant="solid"
+                                    size="sm"
+                                    px={1}
+                                  >
+                                    ⭐ VIP
+                                  </Badge>
+                                )}
+                              </HStack>
+                              <Text
+                                fontSize="2xs"
+                                color="gray.400"
+                                display={{ base: "block", md: "none" }}
+                              >
+                                {guest.group || "Umum"} •{" "}
+                                {guest.attendanceCount || 1} Pax
+                              </Text>
+                            </VStack>
+                          </Table.Cell>
+                          <Table.Cell
+                            py={4}
+                            px={{ base: 2, md: 4 }}
+                            display={{ base: "none", md: "table-cell" }}
+                          >
+                            <VStack align="start" gap={0}>
+                              <Text
+                                color="blue.900"
+                                fontWeight="medium"
+                                fontSize="sm"
+                              >
+                                {guest.group || "-"}
+                              </Text>
+                              <Text fontSize="xs" color="gray.400">
+                                {guest.attendanceCount || 1} Pax
+                              </Text>
+                            </VStack>
                           </Table.Cell>
                           <Table.Cell py={4} px={{ base: 2, md: 4 }}>
                             <Badge
@@ -322,31 +458,46 @@ export default function GuestsPage() {
                                 )
                               : "-"}
                           </Table.Cell>
-                          <Table.Cell textAlign="end" pr={{ base: 4, md: 6 }}>
-                            <HStack gap={{ base: 2, md: 3 }} justify="end">
-                              <Button
+                          <Table.Cell pr={{ base: 4, md: 6 }}>
+                            <HStack gap={2}>
+                              <IconButton
+                                aria-label="View QR"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedQR(guest)}
+                              >
+                                <LuQrCode />
+                              </IconButton>
+
+                              <IconButton
+                                aria-label="Share invitation"
+                                variant="ghost"
                                 size="sm"
                                 colorPalette="blue"
-                                minW={{ base: "2rem", md: "7.5rem" }}
-                                onClick={() =>
-                                  navigate(`/invitation/${guest.id}`)
-                                }
+                                onClick={() => {
+                                  const url = `${window.location.origin}/invitation/${guest.id}`;
+                                  navigator.clipboard.writeText(url);
+                                  toaster.create({
+                                    title: "Invitation link copied!",
+                                    description:
+                                      "You can now share it with the guest",
+                                    type: "success",
+                                    duration: 3000,
+                                  });
+                                }}
                               >
-                                <Text display={{ base: "none", md: "block" }}>
-                                  📩 Invitation
-                                </Text>
-                                <Text display={{ base: "block", md: "none" }}>
-                                  📩
-                                </Text>
-                              </Button>
-                              <Button
-                                size="sm"
+                                <LuShare2 />
+                              </IconButton>
+
+                              <IconButton
+                                aria-label="Delete guest"
                                 variant="ghost"
+                                size="sm"
                                 colorPalette="red"
                                 onClick={() => setGuestToDelete(guest)}
                               >
-                                🗑️
-                              </Button>
+                                <LuTrash2 />
+                              </IconButton>
                             </HStack>
                           </Table.Cell>
                         </Table.Row>
@@ -389,6 +540,36 @@ export default function GuestsPage() {
           <DialogCloseTrigger />
         </DialogContent>
       </DialogRoot>
-    </VStack>
+      {/* QR Dialog */}
+      <DialogRoot
+        open={!!selectedQR}
+        onOpenChange={() => setSelectedQR(null)}
+        role="alertdialog"
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>QR Code Invitation</DialogTitle>
+          </DialogHeader>
+          <DialogBody pb={10}>
+            {selectedQR && (
+              <VStack gap={6}>
+                <Center p={8} bg="blue.50" borderRadius="3xl">
+                  <QrCode.Root value={encodeQRPayload(selectedQR)} size="2xl">
+                    <QrCode.Frame>
+                      <QrCode.Pattern />
+                    </QrCode.Frame>
+                  </QrCode.Root>
+                </Center>
+                <VStack gap={1} textAlign="center">
+                  <Heading size="md">{selectedQR.name}</Heading>
+                  <Text color="gray.500">{selectedQR.group || "Reguler"}</Text>
+                </VStack>
+              </VStack>
+            )}
+          </DialogBody>
+          <DialogCloseTrigger />
+        </DialogContent>
+      </DialogRoot>
+    </Box>
   );
 }

@@ -1,5 +1,6 @@
-import { Dialog as ChakraDialog, Portal } from "@chakra-ui/react"
-import { CloseButton } from "./close-button"
+
+import { Dialog as ChakraDialog, Portal, IconButton } from "@chakra-ui/react"
+import { LuX } from "react-icons/lu"
 import * as React from "react"
 
 interface DialogContentProps extends ChakraDialog.ContentProps {
@@ -44,9 +45,9 @@ export const DialogCloseTrigger = React.forwardRef<
       {...props}
       asChild
     >
-      <CloseButton size="sm" ref={ref}>
-        {props.children}
-      </CloseButton>
+      <IconButton aria-label="Close" variant="ghost" size="sm" ref={ref}>
+        <LuX />
+      </IconButton>
     </ChakraDialog.CloseTrigger>
   )
 })

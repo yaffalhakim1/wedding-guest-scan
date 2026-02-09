@@ -1,4 +1,7 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Heading,
@@ -9,41 +12,64 @@ import {
   Text,
   SimpleGrid,
 } from "@chakra-ui/react";
-import { toaster } from "@/components/ui/toaster";
+import { toaster } from "@/components/ui/toaster-instance";
 import { useWeddingConfig } from "@/hooks/useWeddingConfig";
-import defaultConfig from "@/config/wedding.json";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-type WeddingConfig = typeof defaultConfig;
+import { isAxiosError } from "axios";
+import { configSchema, type WeddingConfig } from "@/utils/validators";
+import RHFForm from "@/components/RHFForm";
 
 // ============================================================================
 // ConfigPage Component
 // ============================================================================
 
 export default function ConfigPage() {
-  const config = useWeddingConfig();
+  const navigate = useNavigate();
+  const { weddingConfig, updateWeddingConfig, isLoading } = useWeddingConfig();
+
+  const methods = useForm<WeddingConfig>({
+    resolver: zodResolver(configSchema),
+    defaultValues: weddingConfig,
+    mode: "onChange",
+  });
 
   const {
     register,
     handleSubmit,
-    formState: { isSubmitting },
-  } = useForm<WeddingConfig>({
-    defaultValues: config,
-  });
+    reset,
+    formState: { isSubmitting, isValid, errors },
+  } = methods;
 
-  const onSubmit = (data: WeddingConfig) => {
-    localStorage.setItem("weddingConfig", JSON.stringify(data));
-    toaster.create({
-      title: "Settings saved",
-      description: "Wedding details have been updated. Reloading...",
-      type: "success",
-    });
+  // Sync form values when data is loaded from API
+  useEffect(() => {
+    if (weddingConfig) {
+      reset(weddingConfig);
+    }
+  }, [weddingConfig, reset]);
 
-    // Force reload to apply changes globally
-    setTimeout(() => window.location.reload(), 1000);
+  const onSubmit = async (data: WeddingConfig) => {
+    try {
+      await updateWeddingConfig(data);
+      toaster.create({
+        title: "Settings saved",
+        description: "Wedding details have been updated successfully.",
+        type: "success",
+      });
+      // Small delay before redirecting to dashboard
+      setTimeout(() => navigate("/"), 1500);
+    } catch (err: unknown) {
+      console.error(err);
+
+      let errorMessage = "Failed to update wedding details.";
+      if (isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || errorMessage;
+      }
+
+      toaster.create({
+        title: "Update failed",
+        description: errorMessage,
+        type: "error",
+      });
+    }
   };
 
   return (
@@ -57,12 +83,7 @@ export default function ConfigPage() {
         </Text>
       </Box>
 
-      <Card.Root
-        bg="white"
-        borderColor="gray.200"
-        borderWidth="1px"
-        shadow="sm"
-      >
+      <Card.Root bg="white">
         <Card.Body p={8}>
           <VStack gap={8} align="stretch">
             <Heading
@@ -75,7 +96,7 @@ export default function ConfigPage() {
               Event Details
             </Heading>
 
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <RHFForm methods={methods} onSubmit={handleSubmit(onSubmit)}>
               <SimpleGrid columns={{ base: 1, md: 2 }} gap={8}>
                 {/* Couple Names */}
                 <Box>
@@ -90,11 +111,17 @@ export default function ConfigPage() {
                   <Input
                     {...register("bride")}
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.bride ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
+                    placeholder="Enter bride's name"
                     size="lg"
                   />
+                  {errors.bride && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.bride.message}
+                    </Text>
+                  )}
                 </Box>
 
                 <Box>
@@ -109,11 +136,17 @@ export default function ConfigPage() {
                   <Input
                     {...register("groom")}
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.groom ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
+                    placeholder="Enter groom's name"
                     size="lg"
                   />
+                  {errors.groom && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.groom.message}
+                    </Text>
+                  )}
                 </Box>
 
                 {/* Date & Time */}
@@ -130,11 +163,16 @@ export default function ConfigPage() {
                     {...register("date")}
                     type="date"
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.date ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
+                  {errors.date && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.date.message}
+                    </Text>
+                  )}
                 </Box>
                 <Box>
                   <Text
@@ -149,11 +187,16 @@ export default function ConfigPage() {
                     {...register("time")}
                     type="time"
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.time ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
                     size="lg"
                   />
+                  {errors.time && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.time.message}
+                    </Text>
+                  )}
                 </Box>
 
                 {/* Full Width Fields */}
@@ -169,11 +212,17 @@ export default function ConfigPage() {
                   <Input
                     {...register("venue")}
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.venue ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
+                    placeholder="Enter wedding venue"
                     size="lg"
                   />
+                  {errors.venue && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.venue.message}
+                    </Text>
+                  )}
                 </Box>
 
                 <Box gridColumn={{ md: "span 2" }}>
@@ -188,11 +237,17 @@ export default function ConfigPage() {
                   <Input
                     {...register("message")}
                     bg="white"
-                    borderColor="blue.200"
+                    borderColor={errors.message ? "red.300" : "blue.200"}
                     color="gray.800"
                     _focus={{ borderColor: "blue.500" }}
+                    placeholder="Welcome message for guests"
                     size="lg"
                   />
+                  {errors.message && (
+                    <Text color="red.500" fontSize="xs" mt={1}>
+                      {errors.message.message}
+                    </Text>
+                  )}
                 </Box>
 
                 <Box gridColumn={{ md: "span 2" }} pt={4}>
@@ -201,13 +256,14 @@ export default function ConfigPage() {
                     colorPalette="blue"
                     size="lg"
                     w="full"
+                    disabled={!isValid || isLoading}
                     loading={isSubmitting}
                   >
                     Save Changes
                   </Button>
                 </Box>
               </SimpleGrid>
-            </form>
+            </RHFForm>
           </VStack>
         </Card.Body>
       </Card.Root>

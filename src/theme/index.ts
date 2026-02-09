@@ -1,4 +1,10 @@
-import { createSystem, defaultConfig, defineConfig } from "@chakra-ui/react";
+import {
+  createSystem,
+  defaultConfig,
+  defineConfig,
+  defineSlotRecipe,
+} from "@chakra-ui/react";
+import { cardAnatomy } from "@chakra-ui/react/anatomy";
 
 // ============================================================================
 // Wedding Theme - Elegant Sapphire Blue & Platinum
@@ -37,6 +43,15 @@ const config = defineConfig({
           950: { value: "#020617" },
         },
       },
+      shadows: {
+        xs: { value: "none" },
+        sm: { value: "none" },
+        md: { value: "none" },
+        lg: { value: "none" },
+        xl: { value: "none" },
+        "2xl": { value: "none" },
+        "3xl": { value: "none" },
+      },
     },
     semanticTokens: {
       colors: {
@@ -69,7 +84,54 @@ const config = defineConfig({
         },
       },
     },
+    slotRecipes: {
+      card: defineSlotRecipe({
+        className: "chakra-card",
+        slots: cardAnatomy.keys(),
+        base: {
+          root: {
+            shadow: "none",
+            borderWidth: "0",
+            borderColor: "transparent",
+          },
+        },
+        variants: {
+          size: {
+            xs: {
+              root: {
+                "--card-padding": "spacing.2",
+              },
+              title: {
+                textStyle: "md",
+              },
+            },
+          },
+          variant: {
+            elevated: {
+              root: {
+                boxShadow: "none",
+                borderWidth: "0",
+              },
+            },
+            outline: {
+              root: {
+                borderWidth: "0",
+                borderColor: "transparent",
+              },
+            },
+            subtle: {
+              root: {
+                borderWidth: "0",
+              },
+            },
+          },
+        },
+        defaultVariants: {
+          variant: "subtle",
+        },
+      }),
+    },
   },
 });
 
-export const system = createSystem(defaultConfig, config);
+export const system = createSystem(config, defaultConfig);

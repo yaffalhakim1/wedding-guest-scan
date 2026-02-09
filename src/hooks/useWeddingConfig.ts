@@ -1,22 +1,40 @@
-import { useState } from "react";
-import defaultConfig from "@/config/wedding.json";
+import useSWR from "swr";
+import { configService } from "../api/config";
+import type { WeddingConfig } from "../api/config";
 
-export type WeddingConfig = typeof defaultConfig;
+const DEFAULT_CONFIG: WeddingConfig = {
+  bride: "Sarah",
+  groom: "John",
+  date: "2024-12-31",
+  time: "18:00",
+  venue: "Grand Ballroom, Fairmont Jakarta",
+  message: "We are delighted to invite you to our wedding celebration!",
+};
 
 export function useWeddingConfig() {
-  const [config] = useState<WeddingConfig>(() => {
-    try {
-      if (typeof window !== "undefined") {
-        const saved = localStorage.getItem("weddingConfig");
-        if (saved) {
-          return { ...defaultConfig, ...JSON.parse(saved) };
-        }
-      }
-    } catch (e) {
-      console.error("Failed to parse wedding config", e);
-    }
-    return defaultConfig;
-  });
+  const {
+    data: configData,
+    error,
+    isLoading,
+    mutate,
+  } = useSWR("/config", () => configService.get());
 
-  return config;
+  const weddingConfig = configData?.config || DEFAULT_CONFIG;
+
+  const updateWeddingConfig = async (newConfig: WeddingConfig) => {
+    try {
+      await configService.update(newConfig);
+      mutate();
+    } catch (err: unknown) {
+      console.error("Failed to update wedding config", err);
+      throw err;
+    }
+  };
+
+  return {
+    weddingConfig,
+    updateWeddingConfig,
+    isLoading,
+    isError: error,
+  };
 }

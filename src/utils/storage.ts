@@ -74,7 +74,7 @@ export function checkInGuest(id: string): Guest | null {
   guests[index] = {
     ...guests[index],
     checkedIn: true,
-    checkedInAt: Date.now(),
+    checkedInAt: new Date().toISOString(),
   };
 
   saveGuests(guests);

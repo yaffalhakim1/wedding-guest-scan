@@ -35,19 +35,39 @@ export const SCANNER_STATUS_CONFIG = {
     description: "Hold steady",
     colorScheme: "blue",
   },
+  searching: {
+    title: "Mencari Tamu",
+    description: "Masukkan nama tamu",
+    colorScheme: "blue",
+  },
+  adding: {
+    title: "Tambah Tamu",
+    description: "Daftarkan tamu baru",
+    colorScheme: "blue",
+  },
+  verifying: {
+    title: "Verifikasi",
+    description: "Konfirmasi detail tamu",
+    colorScheme: "blue",
+  },
+  welcoming: {
+    title: "Selamat Datang!",
+    description: "Tamu berhasil check-in",
+    colorScheme: "green",
+  },
   success: {
-    title: "Welcome!",
+    title: "Sukses!",
     description: "Guest checked in successfully",
     colorScheme: "green",
   },
   error: {
-    title: "Invalid QR",
-    description: "Please try again",
+    title: "Gagal",
+    description: "Terjadi kesalahan",
     colorScheme: "red",
   },
   "already-checked-in": {
-    title: "Already Checked In",
-    description: "This guest has already arrived",
+    title: "Sudah Check-in",
+    description: "Tamu ini sudah hadir sebelumnya",
     colorScheme: "orange",
   },
 } as const;

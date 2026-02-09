@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { isAxiosError } from "axios";
 import {
   Box,
   Heading,
@@ -8,15 +9,26 @@ import {
   VStack,
   HStack,
   Badge,
+  Input,
+  Icon,
+  SimpleGrid,
 } from "@chakra-ui/react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Html5Qrcode } from "html5-qrcode";
 import confetti from "canvas-confetti";
+
 import { decodeQRPayload } from "@/utils/qr";
-import { getGuestById, checkInGuest, getGuestStats } from "@/utils/storage";
+import { useGuests } from "@/hooks/useGuests";
 import { useSound } from "@/hooks/useSound";
-import { SCANNER_STATUS_CONFIG } from "@/constants";
+import { useWeddingConfig } from "@/hooks/useWeddingConfig";
 import type { ScannerStatus, Guest } from "@/types";
+
+import { VerificationDialog } from "@/components/VerificationDialog";
+import { WelcomeDialog } from "@/components/WelcomeDialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { InputGroup } from "@/components/ui/input-group";
+import { DialogRoot, DialogContent, DialogBody } from "@/components/ui/dialog";
+import { LuSearch, LuUserPlus, LuQrCode, LuChevronRight } from "react-icons/lu";
+import { useQueryState } from "nuqs";
 
 // ============================================================================
 // Constants
@@ -24,10 +36,8 @@ import type { ScannerStatus, Guest } from "@/types";
 
 const SCANNER_ELEMENT_ID = "qr-reader";
 
-const MotionBox = motion.create(Box);
-
 // ============================================================================
-// VIP Celebration - Confetti explosion
+// Celebrations
 // ============================================================================
 
 function triggerVIPCelebration() {
@@ -67,17 +77,27 @@ function triggerRegularCelebration() {
 
 export default function ScannerPage() {
   const { playSound } = useSound();
+  const { checkInGuest, stats, guests } = useGuests();
+  const { weddingConfig } = useWeddingConfig();
+
+  // Search State (synced with URL)
+  const [searchQuery, setSearchQuery] = useQueryState("q", {
+    defaultValue: "",
+  });
+
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
 
-  // State Machine Pattern
+  // State Machine
   const [status, setStatus] = useState<ScannerStatus>("idle");
-  const [scannedGuest, setScannedGuest] = useState<Guest | null>(null);
+  const [activeTab, setActiveTab] = useState<string>("scan");
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [stats, setStats] = useState(getGuestStats());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Config lookup from dictionary
-  const statusConfig = SCANNER_STATUS_CONFIG[status];
+  // Form states for manual add
+  const [newName, setNewName] = useState("");
+  const [newGroup, setNewGroup] = useState("");
 
   // Initialize scanner
   useEffect(() => {
@@ -91,307 +111,479 @@ export default function ScannerPage() {
     };
   }, []);
 
-  // Stop scanning
   const stopScanning = useCallback(async () => {
     if (scannerRef.current?.isScanning) {
       await scannerRef.current.stop();
     }
   }, []);
 
-  // Handle successful scan
   const handleScanSuccess = useCallback(
     async (decodedText: string) => {
-      // Prevent multiple processing
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
 
-      // Stop scanner immediately
       await stopScanning();
-
-      // Decode QR payload
       const payload = decodeQRPayload(decodedText);
 
       if (!payload) {
         setStatus("error");
-        setErrorMessage("Invalid QR code format");
+        setErrorMessage("Format QR Code tidak valid");
         isProcessingRef.current = false;
         return;
       }
 
-      // Find guest in storage
-      const guest = getGuestById(payload.id);
-
-      if (!guest) {
-        setStatus("error");
-        setErrorMessage("Guest not found in system");
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Check if already checked in
-      if (guest.checkedIn) {
-        setStatus("already-checked-in");
-        setScannedGuest(guest);
-        playSound("success");
-        isProcessingRef.current = false;
-        return;
-      }
-
-      // Check in the guest
-      const updatedGuest = checkInGuest(guest.id);
-
-      if (updatedGuest) {
-        setStatus("success");
-        setScannedGuest(updatedGuest);
-        setStats(getGuestStats());
-
-        // Celebration based on VIP status
-        if (updatedGuest.isVIP) {
-          playSound("vipSuccess");
-          triggerVIPCelebration();
+      // Instead of immediate check-in, we go to verifying status
+      const guestMatch = guests.find((g) => g.id === payload.id);
+      if (guestMatch) {
+        if (guestMatch.checkedIn) {
+          setStatus("already-checked-in");
+          setSelectedGuest(guestMatch);
         } else {
-          playSound("success");
-          triggerRegularCelebration();
+          setSelectedGuest(guestMatch);
+          setStatus("verifying");
         }
+      } else {
+        setStatus("error");
+        setErrorMessage("Tamu tidak ditemukan dalam daftar");
       }
-
       isProcessingRef.current = false;
     },
-    [stopScanning, playSound],
+    [stopScanning, guests],
   );
 
-  // Start scanning
   const startScanning = useCallback(async () => {
     if (!scannerRef.current) return;
 
     try {
       setStatus("scanning");
-      setScannedGuest(null);
       setErrorMessage(null);
 
       await scannerRef.current.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
+        { fps: 15 },  // Full camera area, no qrbox restriction
         handleScanSuccess,
-        () => {}, // Ignore scan failures
+        () => {},
       );
     } catch (error) {
       console.error("Failed to start scanner:", error);
       setStatus("error");
-      setErrorMessage("Could not access camera. Please check permissions.");
+      setErrorMessage("Gagal mengakses kamera. Cek izin browser.");
     }
   }, [handleScanSuccess]);
 
-  // Reset and scan again
-  const resetAndScan = useCallback(() => {
+  // Actions
+  const handleCheckIn = async (attendanceCount: number) => {
+    if (!selectedGuest) return;
+    setIsSubmitting(true);
+    setStatus("checking-in");
+
+    try {
+      const response = await checkInGuest(selectedGuest.id, attendanceCount);
+      setSelectedGuest(response.guest as Guest);
+
+      // Animations & Sounds
+      if (response.guest.isVIP) {
+        playSound("vipSuccess");
+        triggerVIPCelebration();
+      } else {
+        playSound("success");
+        triggerRegularCelebration();
+      }
+
+      setStatus("welcoming");
+    } catch (err: unknown) {
+      console.error(err);
+      setStatus("error");
+      if (isAxiosError(err)) {
+        setErrorMessage(
+          err.response?.data?.error || "Gagal melakukan check-in",
+        );
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleManualAdd = async () => {
+    if (!newName.trim()) return;
+    setIsSubmitting(true);
+    // Simulate creating a temporary guest object for the verification flow
+    // The actual guest will be created in the database during checkIn if it doesn't exist,
+    // or we can modify the flow to create first.
+    // For this UI, we treat it as a "Walk-in"
+    const walkInGuest: Guest = {
+      id: "walkin-" + Date.now(),
+      name: newName,
+      isVIP: false,
+      checkedIn: false,
+      checkedInAt: null,
+      createdAt: new Date().toISOString(),
+      group: newGroup,
+      attendanceCount: 1,
+    };
+    setSelectedGuest(walkInGuest);
+    setStatus("verifying");
+    setIsSubmitting(false);
+  };
+
+  const resetFlow = () => {
     setStatus("idle");
-    setScannedGuest(null);
+    setSelectedGuest(null);
     setErrorMessage(null);
+    setNewName("");
+    setNewGroup("");
     isProcessingRef.current = false;
-  }, []);
+    if (activeTab === "scan") {
+      startScanning();
+    }
+  };
 
   return (
-    <VStack gap={6}>
-      {/* Header */}
-      <HStack justify="space-between" mb={4} w="full">
-        <Heading size="xl" color="gray.800">
-          QR Scanner
-        </Heading>
-        <HStack gap={4}>
-          <Badge colorPalette="green" size="lg" py={2} px={4}>
-            ✅ {stats.checkedIn} / {stats.total}
-          </Badge>
-          <Badge colorPalette="blue" size="lg" py={2} px={4}>
-            ⭐ VIP: {stats.vipCheckedIn} / {stats.vipTotal}
-          </Badge>
-        </HStack>
-      </HStack>
-
-      {/* Scanner Area */}
-      <Card.Root
-        w="full"
-        maxW="500px"
-        bg="white"
-        borderColor="blue.100"
-        borderWidth="1px"
-        overflow="hidden"
-        shadow="md"
-        mx="auto"
-      >
-        <Card.Body p={0}>
-          {/* Camera View */}
-          <Box
-            id={SCANNER_ELEMENT_ID}
-            w="full"
-            h="21.875rem"
-            bg="black"
-            position="relative"
-          />
-
-          {/* Status Overlay */}
-          <AnimatePresence mode="wait">
-            {status !== "scanning" && (
-              <MotionBox
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                position="absolute"
-                top={0}
-                left={0}
-                right={0}
-                bottom={0}
-                bg="blackAlpha.800"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                p={6}
+    <VStack gap={6} align="stretch" maxW="800px" mx="auto">
+      {/* Stats Header */}
+      <Card.Root variant="subtle" bg="blue.50">
+        <Card.Body p={4}>
+          <SimpleGrid columns={{ base: 2, md: 4 }} gap={4}>
+            <Box>
+              <Text
+                fontSize="2xs"
+                fontWeight="bold"
+                color="blue.600"
+                textTransform="uppercase"
               >
-                <VStack gap={4}>
-                  {status === "idle" && (
-                    <>
-                      <Text fontSize="5xl">📷</Text>
-                      <Button
-                        size="xl"
-                        colorPalette="green"
-                        onClick={startScanning}
-                        py={6}
-                        px={10}
-                      >
-                        Start Scanning
-                      </Button>
-                    </>
-                  )}
-                </VStack>
-              </MotionBox>
-            )}
-          </AnimatePresence>
+                Total Guest
+              </Text>
+              <Heading size="md">{stats.total}</Heading>
+            </Box>
+            <Box>
+              <Text
+                fontSize="2xs"
+                fontWeight="bold"
+                color="green.600"
+                textTransform="uppercase"
+              >
+                Hadir
+              </Text>
+              <Heading size="md">{stats.checkedIn}</Heading>
+            </Box>
+            <Box>
+              <Text
+                fontSize="2xs"
+                fontWeight="bold"
+                color="purple.600"
+                textTransform="uppercase"
+              >
+                VIP
+              </Text>
+              <Heading size="md">{stats.vipTotal}</Heading>
+            </Box>
+            <Box>
+              <Text
+                fontSize="2xs"
+                fontWeight="bold"
+                color="purple.800"
+                textTransform="uppercase"
+              >
+                VIP Hadir
+              </Text>
+              <Heading size="md">{stats.vipCheckedIn}</Heading>
+            </Box>
+          </SimpleGrid>
         </Card.Body>
       </Card.Root>
 
-      {/* Result Display */}
-      <AnimatePresence mode="wait">
-        {scannedGuest &&
-          (status === "success" || status === "already-checked-in") && (
-            <MotionBox
-              key="result"
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4, type: "spring" }}
-              w="full"
-              maxW="31.25rem"
-              mx="auto"
-            >
-              <Card.Root
-                bg="white"
-                borderColor={scannedGuest.isVIP ? "blue.400" : "green.400"}
-                borderWidth="2px"
-                shadow="lg"
-              >
-                <Card.Body>
-                  <VStack gap={4}>
-                    {/* Status Icon */}
-                    <MotionBox
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{
-                        delay: 0.2,
-                        type: "spring",
-                        stiffness: 200,
-                      }}
-                    >
-                      <Text fontSize="6xl">
-                        {status === "already-checked-in"
-                          ? "🔄"
-                          : scannedGuest.isVIP
-                            ? "🌟"
-                            : "✅"}
-                      </Text>
-                    </MotionBox>
-
-                    {/* Status Text */}
-                    <Heading
-                      size="lg"
-                      color={scannedGuest.isVIP ? "blue.600" : "green.600"}
-                    >
-                      {statusConfig.title}
-                    </Heading>
-
-                    {/* Guest Name */}
-                    <HStack>
-                      <Heading size="2xl" color="gray.800">
-                        {scannedGuest.name}
-                      </Heading>
-                      {scannedGuest.isVIP && (
-                        <Badge colorPalette="blue" size="lg">
-                          ⭐ VIP
-                        </Badge>
-                      )}
-                    </HStack>
-
-                    {/* Description */}
-                    <Text color="blue.600">{statusConfig.description}</Text>
-
-                    {/* Scan Again Button */}
-                    <Button
-                      size="lg"
-                      colorPalette="blue"
-                      onClick={() => {
-                        resetAndScan();
-                        startScanning();
-                      }}
-                      mt={4}
-                    >
-                      📷 Scan Next Guest
-                    </Button>
-                  </VStack>
-                </Card.Body>
-              </Card.Root>
-            </MotionBox>
-          )}
-
-        {status === "error" && (
-          <MotionBox
-            key="error"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            w="full"
-            maxW="31.25rem"
-            mx="auto"
+      {/* Main Container */}
+      <Tabs
+        value={activeTab}
+        variant='enclosed'
+        onValueChange={(details) => {
+          setActiveTab(details.value);
+          if (details.value === "scan") {
+            startScanning();
+          } else {
+            stopScanning();
+            setStatus("idle");
+          }
+        }}
+      >
+        <TabsList
+          bg="white"
+          p={1}
+          borderRadius="xl"
+          mb={6}
+          w="full"
+        >
+          <TabsTrigger
+            value="scan"
+            flex={1}
+            py={3}
+            borderRadius="lg"
+            borderBottom="none"
+            _selected={{ bg: "blue.500", color: "white", borderBottom: "none" }}
           >
-            <Card.Root
-              bg="white"
-              borderColor="red.500"
-              borderWidth="2px"
-              shadow="lg"
+            <Icon as={LuQrCode} mr={2} /> Scan QR
+          </TabsTrigger>
+          <TabsTrigger
+            value="search"
+            flex={1}
+            py={3}
+            borderRadius="lg"
+            borderBottom="none"
+            _selected={{ bg: "blue.500", color: "white", borderBottom: "none" }}
+          >
+            <Icon as={LuSearch} mr={2} /> Cari Nama
+          </TabsTrigger>
+          <TabsTrigger
+            value="add"
+            flex={1}
+            py={3}
+            borderRadius="lg"
+            borderBottom="none"
+            _selected={{ bg: "blue.500", color: "white", borderBottom: "none" }}
+          >
+            <Icon as={LuUserPlus} mr={2} /> Tambah Tamu
+          </TabsTrigger>
+        </TabsList>
+
+        <Box>
+          <TabsContent value="scan">
+            <Box 
+              position="relative" 
+              h="600px" 
+              w="full" 
+              bg="black" 
+              borderRadius="2xl" 
+              overflow="hidden"
             >
-              <Card.Body>
-                <VStack gap={4}>
-                  <Text fontSize="5xl">❌</Text>
-                  <Heading size="lg" color="red.600">
-                    {statusConfig.title}
-                  </Heading>
-                  <Text color="blue.600">
-                    {errorMessage || statusConfig.description}
+              {/* Scanner element - always mounted and visible for html5-qrcode */}
+              <Box
+                id={SCANNER_ELEMENT_ID}
+                w="full"
+                h="full"
+              />
+              
+              {/* Instruction overlay - shown while scanning */}
+              {status === "scanning" && (
+                <Box
+                  position="absolute"
+                  bottom={4}
+                  left={0}
+                  right={0}
+                  textAlign="center"
+                  zIndex={5}
+                >
+                  <Text 
+                    color="white" 
+                    fontSize="sm" 
+                    bg="blackAlpha.600" 
+                    px={4} 
+                    py={2} 
+                    borderRadius="full"
+                    display="inline-block"
+                  >
+                    Arahkan kamera ke kode QR tamu
                   </Text>
+                </Box>
+              )}
+              
+              {/* Overlay for idle state */}
+              {status === "idle" && (
+                <Box
+                  position="absolute"
+                  inset={0}
+                  bg="blackAlpha.800"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  zIndex={10}
+                >
                   <Button
-                    size="lg"
-                    colorPalette="red"
-                    variant="outline"
+                    colorPalette="blue"
+                    size="xl"
+                    onClick={startScanning}
+                  >
+                    Aktifkan Kamera
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </TabsContent>
+
+
+          <TabsContent value="search">
+            <VStack gap={4} align="stretch">
+              <InputGroup
+                startElement={<Icon as={LuSearch} color="gray.400" />}
+              >
+                <Input
+                  placeholder="Cari nama tamu..."
+                  size="xl"
+                  value={searchQuery || ""}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </InputGroup>
+
+              <VStack align="stretch" gap={2} maxH="300px" overflowY="auto">
+                {guests.length === 0 && searchQuery && (
+                  <Text textAlign="center" py={8} color="gray.400">
+                    Tamu tidak ditemukan
+                  </Text>
+                )}
+                {guests.slice(0, 10).map((guest) => (
+                  <Button
+                    key={guest.id}
+                    variant="ghost"
+                    justifyContent="space-between"
+                    h="auto"
+                    py={4}
+                    px={4}
+                    bg="white"
+                    border="1px solid"
+                    borderColor="gray.100"
+                    _hover={{ bg: "blue.50", borderColor: "blue.200" }}
                     onClick={() => {
-                      resetAndScan();
-                      startScanning();
+                      setSelectedGuest(guest);
+                      if (guest.checkedIn) {
+                        setStatus("already-checked-in");
+                      } else {
+                        setStatus("verifying");
+                      }
                     }}
                   >
-                    Try Again
+                    <VStack align="start" gap={0}>
+                      <Text fontWeight="bold" color="gray.800">
+                        {guest.name}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {guest.group || "Reguler"}
+                      </Text>
+                    </VStack>
+                    <HStack>
+                      {guest.isVIP && <Badge colorPalette="blue">VIP</Badge>}
+                      {guest.checkedIn ? (
+                        <Badge colorPalette="green">HADIR</Badge>
+                      ) : (
+                        <Icon as={LuChevronRight} color="gray.300" />
+                      )}
+                    </HStack>
+                  </Button>
+                ))}
+              </VStack>
+            </VStack>
+          </TabsContent>
+
+          <TabsContent value="add">
+            <Card.Root bg="white">
+              <Card.Body p={6}>
+                <VStack gap={6} align="stretch">
+                  <VStack align="start" gap={2}>
+                    <Text fontSize="sm" fontWeight="bold">
+                      Nama Tamu
+                    </Text>
+                    <Input
+                      placeholder="Masukkan nama lengkap"
+                      size="lg"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                    />
+                  </VStack>
+                  <VStack align="start" gap={2}>
+                    <Text fontSize="sm" fontWeight="bold">
+                      Grup / Kategori
+                    </Text>
+                    <Input
+                      placeholder="misal: Keluarga Bride, Teman Kantor"
+                      size="lg"
+                      value={newGroup}
+                      onChange={(e) => setNewGroup(e.target.value)}
+                    />
+                  </VStack>
+                  <Button
+                    colorPalette="blue"
+                    size="xl"
+                    w="full"
+                    onClick={handleManualAdd}
+                    loading={isSubmitting}
+                    disabled={!newName.trim()}
+                  >
+                    Verifikasi & Lanjut
                   </Button>
                 </VStack>
               </Card.Body>
             </Card.Root>
-          </MotionBox>
-        )}
-      </AnimatePresence>
+          </TabsContent>
+        </Box>
+      </Tabs>
+
+      {/* Already Checked-in Dialog */}
+      <DialogRoot 
+        open={status === "already-checked-in" && !!selectedGuest} 
+        onOpenChange={() => resetFlow()}
+      >
+        <DialogContent>
+          <DialogBody py={8} textAlign="center">
+            <VStack gap={4}>
+              <Text fontSize="5xl">🔄</Text>
+              <Heading size="lg" color="orange.600">
+                Sudah Check-in
+              </Heading>
+              <Text color="gray.600">
+                <b>{selectedGuest?.name}</b> sudah hadir pada{" "}
+                {selectedGuest?.checkedInAt
+                  ? new Date(selectedGuest.checkedInAt).toLocaleTimeString()
+                  : "-"}
+              </Text>
+              <Button colorPalette="orange" onClick={resetFlow} w="full">
+                Tutup
+              </Button>
+            </VStack>
+          </DialogBody>
+        </DialogContent>
+      </DialogRoot>
+
+      {/* Error Dialog */}
+      <DialogRoot 
+        open={status === "error"} 
+        onOpenChange={() => resetFlow()}
+      >
+        <DialogContent>
+          <DialogBody py={8} textAlign="center">
+            <VStack gap={4}>
+              <Text fontSize="5xl">❌</Text>
+              <Heading size="lg" color="red.600">
+                Error
+              </Heading>
+              <Text color="gray.600">
+                {errorMessage || "Terjadi kesalahan sistem"}
+              </Text>
+              <Button colorPalette="red" onClick={resetFlow} w="full">
+                Coba Lagi
+              </Button>
+            </VStack>
+          </DialogBody>
+        </DialogContent>
+      </DialogRoot>
+
+
+      <VerificationDialog
+        key={selectedGuest?.id || "none"}
+        guest={selectedGuest}
+        isOpen={status === "verifying" || status === "checking-in"}
+        onCheckIn={handleCheckIn}
+        onCancel={() => {
+          setStatus("idle");
+          setSelectedGuest(null);
+          if (activeTab === "scan") startScanning();
+        }}
+        isSubmitting={isSubmitting}
+      />
+
+      <WelcomeDialog
+        guest={selectedGuest}
+        config={weddingConfig}
+        isOpen={status === "welcoming"}
+        onContinue={resetFlow}
+      />
     </VStack>
   );
 }

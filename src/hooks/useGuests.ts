@@ -1,117 +1,113 @@
-import { useState, useCallback, useSyncExternalStore } from "react";
-import type { Guest } from "@/types";
-import {
-  getGuests,
-  addGuest as addGuestToStorage,
-  updateGuest as updateGuestInStorage,
-  deleteGuest as deleteGuestFromStorage,
-  checkInGuest as checkInGuestInStorage,
-  getGuestStats,
-  type GuestStats,
-} from "@/utils/storage";
+import useSWR, { useSWRConfig } from "swr";
+import { guestService } from "../api/guests";
+import type { GuestStats } from "../utils/validators";
+import { useState } from "react";
 
-// ============================================================================
-// useGuests Hook - Manages guest state with localStorage sync
-// ============================================================================
-
-/**
- * External store for guests to enable cross-component sync
- */
-let guestsCache: Guest[] = getGuests();
-const listeners = new Set<() => void>();
-
-function subscribe(callback: () => void) {
-  listeners.add(callback);
-  return () => listeners.delete(callback);
-}
-
-function getSnapshot() {
-  return guestsCache;
-}
-
-function notifyListeners() {
-  guestsCache = getGuests();
-  listeners.forEach((listener) => listener());
-}
-
-/**
- * Hook to manage guests with localStorage persistence
- * Uses useSyncExternalStore for cross-component reactivity
- */
 export function useGuests() {
-  const guests = useSyncExternalStore(subscribe, getSnapshot);
+  const { mutate } = useSWRConfig();
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
 
-  const addGuest = useCallback((name: string, isVIP: boolean) => {
-    const newGuest: Guest = {
-      id: crypto.randomUUID(),
-      name,
-      isVIP,
-      createdAt: Date.now(),
-      checkedIn: false,
-      checkedInAt: null,
-    };
-    addGuestToStorage(newGuest);
-    notifyListeners();
-    return newGuest;
-  }, []);
+  const {
+    data: guestsData,
+    error: guestsError,
+    isLoading: guestsLoading,
+  } = useSWR(["/guests", searchQuery], () =>
+    guestService.getAll({ search: searchQuery || undefined }),
+  );
 
-  const updateGuest = useCallback((guest: Guest) => {
-    updateGuestInStorage(guest);
-    notifyListeners();
-  }, []);
+  const {
+    data: statsData,
+    error: statsError,
+    isLoading: statsLoading,
+  } = useSWR("/guests/stats", () => guestService.getStats());
 
-  const deleteGuest = useCallback((id: string) => {
-    deleteGuestFromStorage(id);
-    notifyListeners();
-  }, []);
+  const addGuest = async (
+    name: string,
+    isVIP: boolean,
+    group?: string,
+    attendanceCount: number = 1,
+  ) => {
+    try {
+      const result = await guestService.create({
+        name,
+        isVIP,
+        group,
+        attendanceCount,
+      });
+      mutate(["/guests", searchQuery]);
+      mutate("/guests/stats");
+      return result.guest;
+    } catch (err) {
+      console.error("Failed to add guest", err);
+      throw err;
+    }
+  };
 
-  const checkInGuest = useCallback((id: string) => {
-    const guest = checkInGuestInStorage(id);
-    notifyListeners();
-    return guest;
-  }, []);
+  const updateGuest = async (
+    id: string,
+    name: string,
+    isVIP: boolean,
+    group?: string,
+    attendanceCount: number = 1,
+  ) => {
+    try {
+      await guestService.update(id, { name, isVIP, group, attendanceCount });
+      mutate(["/guests", searchQuery]);
+      mutate("/guests/stats");
+    } catch (err) {
+      console.error("Failed to update guest", err);
+      throw err;
+    }
+  };
 
-  const getStats = useCallback((): GuestStats => {
-    return getGuestStats();
-  }, []);
+  const deleteGuest = async (id: string) => {
+    try {
+      await guestService.delete(id);
+      mutate(["/guests", searchQuery]);
+      mutate("/guests/stats");
+    } catch (err) {
+      console.error("Failed to delete guest", err);
+      throw err;
+    }
+  };
+
+  const checkInGuest = async (id: string, attendanceCount?: number) => {
+    try {
+      const response = await guestService.checkIn(id, attendanceCount);
+      mutate(["/guests", searchQuery]);
+      mutate("/guests/stats");
+      return response;
+    } catch (err) {
+      console.error("Failed to check in guest", err);
+      throw err;
+    }
+  };
+
+  const resetGuests = () => {
+    // This functionality depends on backend implementation
+    // For now, it just invalidates cache
+    mutate(["/guests", searchQuery]);
+    mutate("/guests/stats");
+  };
+
+  const getStats = (): GuestStats => {
+    return (
+      statsData || { total: 0, checkedIn: 0, vipTotal: 0, vipCheckedIn: 0 }
+    );
+  };
 
   return {
-    guests,
+    guests: guestsData?.guests || [],
+    stats: getStats(),
+    isLoading: guestsLoading || statsLoading,
+    isError: guestsError || statsError,
     addGuest,
     updateGuest,
     deleteGuest,
     checkInGuest,
+    resetGuests,
+    searchQuery,
+    setSearchQuery,
     getStats,
   };
-}
-
-// ============================================================================
-// useLocalStorage Hook - Generic localStorage hook
-// ============================================================================
-
-export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
-    } catch {
-      return initialValue;
-    }
-  });
-
-  const setValue = useCallback(
-    (value: T | ((val: T) => T)) => {
-      try {
-        const valueToStore =
-          value instanceof Function ? value(storedValue) : value;
-        setStoredValue(valueToStore);
-        localStorage.setItem(key, JSON.stringify(valueToStore));
-      } catch (error) {
-        console.error("Error saving to localStorage:", error);
-      }
-    },
-    [key, storedValue],
-  );
-
-  return [storedValue, setValue] as const;
 }

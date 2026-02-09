@@ -1,8 +1,34 @@
 {
   "bride": "Bride Name",
   "groom": "Groom Name",
+  "brideParents": "Parents of the Bride",
+  "groomParents": "Parents of the Groom",
   "date": "2026-02-14",
   "time": "10:00",
   "venue": "Grand Ballroom, Jakarta",
-  "message": "We would be honored by your presence"
+  "message": "We would be honored by your presence",
+  "mapsUrl": "https://maps.google.com/?q=Grand+Ballroom+Jakarta",
+  "countdownDate": "2026-02-14T10:00:00+07:00",
+  "musicUrl": "/music/wedding-song.mp3",
+  "ourStory": [
+    {
+      "date": "2023-01",
+      "title": "First Met",
+      "description": "Details will be provided later"
+    },
+    {
+      "date": "2024-06",
+      "title": "The Proposal",
+      "description": "Details will be provided later"
+    }
+  ],
+  "bankAccount": {
+    "bankName": "BCA",
+    "accountNumber": "1234567890",
+    "accountName": "Bride & Groom"
+  },
+  "quote": {
+    "text": "QS. Ar-Rum: 21",
+    "content": "And of His signs is that He created for you from yourselves mates that you may find tranquility in them; and He placed between you affection and mercy. Indeed in that are signs for a people who give thought."
+  }
 }

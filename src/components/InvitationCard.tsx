@@ -1,6 +1,5 @@
 import { Box, Text, Heading, VStack, HStack, Badge } from "@chakra-ui/react";
-import type { Guest } from "@/types";
-import type { WeddingConfig } from "@/hooks/useWeddingConfig";
+import type { Guest, WeddingConfig } from "@/types";
 
 const INVITATION_THEMES = {
   vip: {

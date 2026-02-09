@@ -4,17 +4,20 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "npm run typegen && vite",
+    "build": "tsc && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typegen": "chakra typegen src/theme/index.ts"
   },
   "dependencies": {
     "@chakra-ui/react": "^3.32.0",
     "@emotion/react": "^11.14.0",
     "@floating-ui/react": "^0.27.17",
+    "@hookform/resolvers": "^5.2.2",
     "@tiptap/pm": "^3.19.0",
     "@tiptap/react": "^3.19.0",
+    "axios": "^1.13.4",
     "canvas-confetti": "^1.9.4",
     "framer-motion": "^12.31.0",
     "html5-qrcode": "^2.3.8",
@@ -25,9 +28,12 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.1",
     "react-icons": "^5.5.0",
-    "react-router-dom": "^7.13.0"
+    "react-router-dom": "^7.13.0",
+    "swr": "^2.4.0",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@chakra-ui/cli": "^3.32.0",
     "@eslint/js": "^9.39.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^24.10.1",
