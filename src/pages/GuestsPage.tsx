@@ -21,8 +21,9 @@ import {
   Center,
 } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LuTrash2, LuQrCode, LuShare2 } from "react-icons/lu";
+import { LuTrash2, LuQrCode, LuShare2, LuDownload } from "react-icons/lu";
 import { toaster } from "@/components/ui/toaster-instance";
+import { guestService } from "@/api/guests";
 import {
   DialogRoot,
   DialogContent,
@@ -51,6 +52,7 @@ const MotionCard = motion.create(Card.Root);
 
 export default function GuestsPage() {
   const [selectedQR, setSelectedQR] = useState<Guest | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const { guests, deleteGuest, addGuest } = useGuests();
 
   // Search State (synced with URL)
@@ -189,17 +191,64 @@ export default function GuestsPage() {
     }
   };
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await guestService.exportGuests();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute(
+        "download",
+        `guests-export-${new Date().toISOString().split("T")[0]}.xlsx`,
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toaster.create({
+        title: "Export successful",
+        description: "Guest list has been exported to Excel.",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      console.error("Export failed", err);
+      let errorMessage = "Failed to export guest list. Please try again.";
+      if (isAxiosError(err)) {
+        errorMessage = err.response?.data?.error || errorMessage;
+      }
+      toaster.create({
+        title: "Export failed",
+        description: errorMessage,
+        type: "error",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Box gap={8} pb={10}>
       {/* Header */}
-      <Box>
-        <Heading size="2xl" color="gray.800" mb={2}>
-          Guest Management
-        </Heading>
-        <Text color="gray.500" mb={2}>
-          {guests.length} guest{guests.length !== 1 ? "s" : ""} registered
-        </Text>
-      </Box>
+      <HStack justify="space-between" align="start" mb={4}>
+        <Box>
+          <Heading size="2xl" color="gray.800" mb={2}>
+            Guest Management
+          </Heading>
+          <Text color="gray.500">
+            {guests.length} guest{guests.length !== 1 ? "s" : ""} registered
+          </Text>
+        </Box>
+        <Button
+          variant="outline"
+          colorPalette="green"
+          onClick={handleExport}
+          loading={isExporting}
+          size="sm"
+        >
+          <LuDownload /> Export Excel
+        </Button>
+      </HStack>
 
       {/* Add Guest Form */}
       <MotionCard

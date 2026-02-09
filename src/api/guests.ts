@@ -38,4 +38,7 @@ export const guestService = {
         attendanceCount,
       })
       .then((res) => res.data),
+
+  exportGuests: () =>
+    api.get("/guests/export", { responseType: "blob" }).then((res) => res.data),
 };
