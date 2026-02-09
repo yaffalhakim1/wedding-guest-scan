@@ -1,3 +1,11 @@
+# Proxy API requests to backend server
+[[redirects]]
+  from = "/api/*"
+  to = "http://43.133.147.94:5000/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
